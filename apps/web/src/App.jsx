@@ -1,11 +1,5 @@
-import React from 'react'
+import AppRoutes from "./routes";
 
-const App = () => {
-  return (
-    <div className='text-3xl font-bold underline'>
-      jhdsjs
-    </div>
-  )
+export default function App() {
+  return <AppRoutes />;
 }
-
-export default App
