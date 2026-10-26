@@ -116,7 +116,7 @@ function Logo() {
     >
       <svg
         viewBox="0 0 48 48"
-        className="h-10 w-12 shrink-0 overflow-visible"
+        className="h-8 w-12 shrink-0 overflow-visible"
         aria-hidden="true"
       >
    <g fill="#fff" transform="translate(-18 0)">
@@ -239,7 +239,7 @@ export default function Navbar({ cartCount = 0 }) {
         <nav
           ref={desktopNavRef}
           aria-label="Navigasi utama"
-          className="ml-2 hidden lg:block xl:ml-6"
+          className="ml-10 hidden lg:block xl:ml-6"
         >
           <ul className="flex items-center">
             {NAV_LINKS.map((link) => (
@@ -314,7 +314,7 @@ export default function Navbar({ cartCount = 0 }) {
           query={query}
           setQuery={setQuery}
           onSubmit={handleSearch}
-          className="ml-auto hidden min-w-[180px] max-w-xl flex-1 lg:block"
+          className="ml-10 hidden min-w-[100px] max-w-xl flex-1 lg:block"
         />
 
         {/* Keranjang + Masuk/Daftar + tombol menu */}

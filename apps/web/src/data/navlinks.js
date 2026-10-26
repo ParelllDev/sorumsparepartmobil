@@ -2,7 +2,7 @@
 
 export const BRAND = {
   name: "orum Lembang",
-  tagline: "Sparepart Mobil",
+  tagline: "parepart Mobil",
 };
 
 export const CONTACT = {
