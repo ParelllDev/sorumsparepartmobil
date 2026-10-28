@@ -354,12 +354,7 @@ export default function Home() {
 
       {/* MEREK TERPERCAYA */}
       <section className="mt-10 grid items-center gap-6 lg:grid-cols-[auto_1fr_auto]">
-        <Reveal from="left">
-          <Eyebrow>Merek terpercaya</Eyebrow>
-          <h2 className="mt-2 text-2xl font-bold tracking-tight text-slate-900">
-            Tersedia untuk Semua Merek Mobil
-          </h2>
-        </Reveal>
+
 
         <ul className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3 lg:justify-evenly">
           {BRANDS.map((b, i) => (
@@ -374,18 +369,7 @@ export default function Home() {
           ))}
         </ul>
 
-        <Reveal from="right" delay={300} className="justify-self-start lg:justify-self-end">
-          <Link
-            to="/merek"
-            className={`group flex items-center gap-2 rounded text-sm font-semibold text-red-600 hover:text-red-500 ${focusRing}`}
-          >
-            Lihat Semua Merek
-            <Icon
-              name="arrow"
-              className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1"
-            />
-          </Link>
-        </Reveal>
+
       </section>
 
       {/* KATEGORI */}

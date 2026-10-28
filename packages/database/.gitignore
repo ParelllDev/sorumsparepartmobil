@@ -1,0 +1,58 @@
+# ===== Dependencies =====
+node_modules/
+.pnpm-store/
+
+# ===== Environment (berisi password database) =====
+.env
+.env.*
+!.env.example
+
+# ===== Build output =====
+dist/
+build/
+.vite/
+.turbo/
+coverage/
+*.tsbuildinfo
+
+# ===== Go (packages/database/src) =====
+bin/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+*.prof
+go.work
+go.work.sum
+
+# ===== Prisma =====
+# Folder prisma/migrations JANGAN di-ignore, harus ikut di-commit.
+*.db
+*.db-journal
+
+# ===== Logs =====
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ===== Upload / data lokal =====
+uploads/
+tmp/
+*.tmp
+
+# ===== Alat bantu editor / AI =====
+.refact/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+
+# ===== OS =====
+.DS_Store
+Thumbs.db
+desktop.ini

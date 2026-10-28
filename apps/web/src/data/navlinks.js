@@ -22,9 +22,7 @@ export const CATEGORIES = [
 
 export const NAV_LINKS = [
   { label: "Beranda", to: "/" },
-  {
-    label: "produk",
-  },
-
+  { label: "Produk", to: "/produk" },
   { label: "Kontak", to: "/kontak" },
+
 ];

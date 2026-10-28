@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { BRAND, CONTACT, NAV_LINKS } from "../data/navlinks";
 
 const ICONS = {
@@ -112,14 +112,14 @@ function Logo() {
     <Link
       to="/"
       aria-label={`${BRAND.name} - beranda`}
-      className={`flex shrink-0 items-center gap-0 rounded ${focusRing}`}
+      className={`group flex shrink-0 items-center gap-0 rounded ${focusRing}`}
     >
       <svg
         viewBox="0 0 48 48"
-        className="h-8 w-12 shrink-0 overflow-visible"
+        className="h-8 w-12 shrink-0 overflow-visible transition-transform duration-300 group-hover:scale-105"
         aria-hidden="true"
       >
-   <g fill="#fff" transform="translate(-18 0)">
+        <g fill="#fff" transform="translate(-18 0)">
           <rect x="0" y="16" width="22" height="3" rx="1.5" />
           <rect x="6" y="23" width="18" height="3" rx="1.5" />
         </g>
@@ -156,8 +156,8 @@ function SearchForm({ query, setQuery, onSubmit, className = "" }) {
       <label htmlFor="cari-sparepart" className="sr-only">
         Cari sparepart
       </label>
-      <div className="relative w-full">
-        <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-200">
+      <div className="group relative w-full">
+        <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-200 transition-colors duration-300 group-focus-within:text-red-400">
           <Icon name="search" className="h-5 w-5" />
         </span>
         <input
@@ -166,7 +166,7 @@ function SearchForm({ query, setQuery, onSubmit, className = "" }) {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Cari sparepart, merek, atau kode..."
-          className="h-11 w-full rounded-full border border-white/10 bg-white/5 pl-12 pr-4 text-sm text-white placeholder:text-slate-400 focus:border-red-500 focus:bg-white/10 focus:outline-none focus:ring-2 focus:ring-red-500/40"
+          className="h-11 w-full rounded-full border border-white/10 bg-white/5 pl-12 pr-4 text-sm text-white transition-all duration-300 placeholder:text-slate-400 hover:border-white/25 focus:border-red-500 focus:bg-white/10 focus:outline-none focus:ring-2 focus:ring-red-500/40"
         />
       </div>
     </form>
@@ -178,16 +178,32 @@ export default function Navbar({ cartCount = 0 }) {
   const [openDropdown, setOpenDropdown] = useState(null);
   const [mobileSub, setMobileSub] = useState(false);
   const [query, setQuery] = useState("");
+  const [mounted, setMounted] = useState(false);
+  const [bump, setBump] = useState(false);
   const desktopNavRef = useRef(null);
   const location = useLocation();
   const navigate = useNavigate();
+
+  // Animasi navbar turun saat halaman dibuka
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => setMounted(true));
+    return () => cancelAnimationFrame(frame);
+  }, []);
+
+  // Badge keranjang "membal" saat jumlahnya berubah
+  useEffect(() => {
+    if (cartCount === 0) return;
+    setBump(true);
+    const t = setTimeout(() => setBump(false), 300);
+    return () => clearTimeout(t);
+  }, [cartCount]);
 
   // Tutup semua menu setiap pindah halaman
   useEffect(() => {
     setMobileOpen(false);
     setOpenDropdown(null);
     setMobileSub(false);
-  }, [location.pathname, location.search]);
+  }, [location.pathname, location.search, location.hash]);
 
   // Tutup dropdown saat klik di luar, dan semua menu saat tekan Escape
   useEffect(() => {
@@ -217,21 +233,56 @@ export default function Navbar({ cartCount = 0 }) {
     navigate(`/katalog?cari=${encodeURIComponent(q)}`);
   };
 
+  // Aktif hanya jika path (dan hash / query, kalau ada di `to`) benar-benar cocok.
+  // exact=true: path harus sama persis (dipakai untuk isi dropdown).
+  const isLinkActive = (to = "/", exact = false) => {
+    const [beforeHash, hash] = to.split("#");
+    const [rawPath, search] = beforeHash.split("?");
+    const path = rawPath || "/";
+    if (hash) return location.pathname === path && location.hash === `#${hash}`;
+    if (search)
+      return location.pathname === path && location.search === `?${search}`;
+    if (path === "/") return location.pathname === "/";
+    if (exact) return location.pathname === path && !location.search;
+    return location.pathname === path || location.pathname.startsWith(`${path}/`);
+  };
+
   const isKatalogActive = location.pathname.startsWith("/katalog");
 
   // Gaya item menu desktop: teks putih, aktif merah + garis merah di bawah
   const desktopItem = (active) =>
-    `relative flex h-20 items-center gap-2 whitespace-nowrap px-2.5 text-sm font-medium transition-colors xl:px-4 xl:text-[15px] ${
+    `group relative flex h-20 items-center gap-2 whitespace-nowrap px-2.5 text-sm font-medium transition-colors duration-300 xl:px-4 xl:text-[15px] ${
       active ? "text-red-500" : "text-white hover:text-red-400"
     } ${focusRing}`;
-  const activeBar = (
-    <span className="absolute inset-x-3 bottom-3 h-[3px] rounded-full bg-red-500" />
+
+  // Garis bawah selalu ada: memanjang dari tengah saat aktif, setengah saat hover
+  const activeBar = (active) => (
+    <span
+      className={`absolute inset-x-3 bottom-3 h-[3px] origin-center rounded-full bg-red-500 transition-transform duration-300 ease-out ${
+        active ? "scale-x-100" : "scale-x-0 group-hover:scale-x-50"
+      }`}
+    />
   );
 
-  const actionClass = `flex flex-col items-center gap-1 whitespace-nowrap px-3 text-xs xl:px-4 font-medium text-white transition-colors hover:text-red-400 ${focusRing}`;
+  const iconAnim =
+    "h-5 w-5 transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:scale-110";
+
+  const actionClass = `group flex flex-col items-center gap-1 whitespace-nowrap px-3 text-xs xl:px-4 font-medium text-white transition-all duration-300 hover:-translate-y-0.5 hover:text-red-400 ${focusRing}`;
+
+  // Animasi masuk bertahap untuk elemen header
+  const enter = (delay, from = "-translate-y-3") => ({
+    style: { transitionDelay: mounted ? `${delay}ms` : "0ms" },
+    className: `transition-all duration-700 ease-out motion-reduce:transform-none motion-reduce:opacity-100 motion-reduce:transition-none ${
+      mounted ? "translate-y-0 opacity-100" : `${from} opacity-0`
+    }`,
+  });
 
   return (
-    <header className="sticky top-0 z-50 border-b border-white/5 bg-[#0b0f17] shadow-lg shadow-black/30">
+    <header
+      className={`sticky top-0 z-50 border-b border-white/5 bg-[#0b0f17] shadow-lg shadow-black/30 transition-all duration-700 ease-out motion-reduce:transform-none motion-reduce:opacity-100 motion-reduce:transition-none ${
+        mounted ? "translate-y-0 opacity-100" : "-translate-y-full opacity-0"
+      }`}
+    >
       <div className="mx-auto flex h-20 max-w-[1500px] items-center gap-4 px-4 lg:px-8">
         <Logo />
 
@@ -242,84 +293,101 @@ export default function Navbar({ cartCount = 0 }) {
           className="ml-10 hidden lg:block xl:ml-6"
         >
           <ul className="flex items-center">
-            {NAV_LINKS.map((link) => (
-              <li key={link.label} className="relative">
-                {link.children ? (
-                  <>
-                    <button
-                      type="button"
-                      aria-expanded={openDropdown === link.label}
-                      aria-haspopup="true"
-                      onClick={() =>
-                        setOpenDropdown(
-                          openDropdown === link.label ? null : link.label
-                        )
-                      }
-                      className={desktopItem(isKatalogActive)}
-                    >
-                      <Icon name={iconFor(link)} className="h-5 w-5" />
-                      {link.label}
-                      <Icon
-                        name="chevron"
-                        className={`h-4 w-4 transition-transform ${
-                          openDropdown === link.label ? "rotate-180" : ""
+            {NAV_LINKS.map((link, i) => {
+              const active = link.children
+                ? isKatalogActive
+                : isLinkActive(link.to);
+              const open = openDropdown === link.label;
+              const anim = enter(200 + i * 100);
+
+              return (
+                <li
+                  key={link.label}
+                  style={anim.style}
+                  className={`relative ${anim.className}`}
+                >
+                  {link.children ? (
+                    <>
+                      <button
+                        type="button"
+                        aria-expanded={open}
+                        aria-haspopup="true"
+                        onClick={() => setOpenDropdown(open ? null : link.label)}
+                        className={desktopItem(active)}
+                      >
+                        <Icon name={iconFor(link)} className={iconAnim} />
+                        {link.label}
+                        <Icon
+                          name="chevron"
+                          className={`h-4 w-4 transition-transform duration-300 ${
+                            open ? "rotate-180" : ""
+                          }`}
+                        />
+                        {activeBar(active)}
+                      </button>
+
+                      {/* Dropdown selalu dirender supaya bisa dianimasikan */}
+                      <ul
+                        className={`absolute left-0 top-[calc(100%-8px)] w-60 origin-top overflow-hidden rounded-xl border border-white/10 bg-[#121722] py-2 shadow-2xl shadow-black/50 transition-all duration-200 ease-out ${
+                          open
+                            ? "visible translate-y-0 scale-100 opacity-100"
+                            : "invisible -translate-y-2 scale-95 opacity-0"
                         }`}
-                      />
-                      {isKatalogActive && activeBar}
-                    </button>
-                    {openDropdown === link.label && (
-                      <ul className="absolute left-0 top-[calc(100%-8px)] w-60 overflow-hidden rounded-xl border border-white/10 bg-[#121722] py-2 shadow-2xl shadow-black/50">
+                      >
                         {link.children.map((child) => (
                           <li key={child.to}>
-                            <NavLink
+                            <Link
                               to={child.to}
-                              end
-                              className={({ isActive }) =>
-                                `block px-5 py-2.5 text-sm ${
-                                  isActive
-                                    ? "bg-red-500/10 font-medium text-red-400"
-                                    : "text-slate-200 hover:bg-white/5 hover:text-white"
-                                } ${focusRing}`
-                              }
+                              tabIndex={open ? 0 : -1}
+                              className={`block px-5 py-2.5 text-sm transition-all duration-200 hover:pl-6 ${
+                                isLinkActive(child.to, true)
+                                  ? "bg-red-500/10 font-medium text-red-400"
+                                  : "text-slate-200 hover:bg-white/5 hover:text-white"
+                              } ${focusRing}`}
                             >
                               {child.label}
-                            </NavLink>
+                            </Link>
                           </li>
                         ))}
                       </ul>
-                    )}
-                  </>
-                ) : (
-                  <NavLink
-                    to={link.to}
-                    end={link.to === "/"}
-                    className={({ isActive }) => desktopItem(isActive)}
-                  >
-                    {({ isActive }) => (
-                      <>
-                        <Icon name={iconFor(link)} className="h-5 w-5" />
-                        {link.label}
-                        {isActive && activeBar}
-                      </>
-                    )}
-                  </NavLink>
-                )}
-              </li>
-            ))}
+                    </>
+                  ) : (
+                    <Link
+                      to={link.to}
+                      aria-current={active ? "page" : undefined}
+                      className={desktopItem(active)}
+                    >
+                      <Icon name={iconFor(link)} className={iconAnim} />
+                      {link.label}
+                      {activeBar(active)}
+                    </Link>
+                  )}
+                </li>
+              );
+            })}
           </ul>
         </nav>
 
         {/* Pencarian desktop */}
-        <SearchForm
-          query={query}
-          setQuery={setQuery}
-          onSubmit={handleSearch}
-          className="ml-10 hidden min-w-[100px] max-w-xl flex-1 lg:block"
-        />
+        <div
+          {...enter(500)}
+          className={`ml-10 hidden min-w-[100px] max-w-xl flex-1 lg:block ${
+            enter(500).className
+          }`}
+        >
+          <SearchForm
+            query={query}
+            setQuery={setQuery}
+            onSubmit={handleSearch}
+          />
+        </div>
 
         {/* Keranjang + Masuk/Daftar + tombol menu */}
         <div className="ml-auto flex items-center lg:ml-0">
-          <div className="hidden items-center lg:flex">
+          <div
+            {...enter(600)}
+            className={`hidden items-center lg:flex ${enter(600).className}`}
+          >
             <span className="mx-2 h-10 w-px bg-white/10" aria-hidden="true" />
             <Link
               to="/keranjang"
@@ -327,8 +395,15 @@ export default function Navbar({ cartCount = 0 }) {
               className={actionClass}
             >
               <span className="relative">
-                <Icon name="cart" className="h-7 w-7" />
-                <span className="absolute -right-2.5 -top-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-[11px] font-bold text-white">
+                <Icon
+                  name="cart"
+                  className="h-7 w-7 transition-transform duration-300 group-hover:scale-110"
+                />
+                <span
+                  className={`absolute -right-2.5 -top-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-[11px] font-bold text-white transition-transform duration-300 ${
+                    bump ? "scale-150" : "scale-100"
+                  }`}
+                >
                   {cartCount > 99 ? "99+" : cartCount}
                 </span>
               </span>
@@ -336,7 +411,10 @@ export default function Navbar({ cartCount = 0 }) {
             </Link>
             <span className="mx-2 h-10 w-px bg-white/10" aria-hidden="true" />
             <Link to="/masuk" className={actionClass}>
-              <Icon name="user" className="h-7 w-7" />
+              <Icon
+                name="user"
+                className="h-7 w-7 transition-transform duration-300 group-hover:scale-110"
+              />
               Masuk / Daftar
             </Link>
           </div>
@@ -346,11 +424,15 @@ export default function Navbar({ cartCount = 0 }) {
             <Link
               to="/keranjang"
               aria-label={`Keranjang, ${cartCount} item`}
-              className={`relative flex h-10 w-10 items-center justify-center rounded text-white hover:bg-white/10 ${focusRing}`}
+              className={`relative flex h-10 w-10 items-center justify-center rounded text-white transition-colors hover:bg-white/10 ${focusRing}`}
             >
               <Icon name="cart" className="h-6 w-6" />
               {cartCount > 0 && (
-                <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-[11px] font-bold text-white">
+                <span
+                  className={`absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-[11px] font-bold text-white transition-transform duration-300 ${
+                    bump ? "scale-150" : "scale-100"
+                  }`}
+                >
                   {cartCount > 99 ? "99+" : cartCount}
                 </span>
               )}
@@ -361,110 +443,125 @@ export default function Navbar({ cartCount = 0 }) {
               aria-expanded={mobileOpen}
               aria-controls="menu-mobile"
               onClick={() => setMobileOpen((v) => !v)}
-              className={`flex h-10 w-10 items-center justify-center rounded text-white hover:bg-white/10 ${focusRing}`}
+              className={`flex h-10 w-10 items-center justify-center rounded text-white transition-colors hover:bg-white/10 ${focusRing}`}
             >
-              <Icon name={mobileOpen ? "close" : "menu"} className="h-6 w-6" />
+              <Icon
+                name={mobileOpen ? "close" : "menu"}
+                className={`h-6 w-6 transition-transform duration-300 ${
+                  mobileOpen ? "rotate-90" : "rotate-0"
+                }`}
+              />
             </button>
           </div>
         </div>
       </div>
 
-      {/* Panel menu mobile */}
-      {mobileOpen && (
-        <div
-          id="menu-mobile"
-          className="border-t border-white/10 bg-[#0b0f17] lg:hidden"
-        >
-          <div className="mx-auto max-w-7xl px-4 py-4">
-            <SearchForm
-              query={query}
-              setQuery={setQuery}
-              onSubmit={handleSearch}
-              className="mb-3"
-            />
-            <nav aria-label="Navigasi utama (mobile)">
-              <ul className="divide-y divide-white/5">
-                {NAV_LINKS.map((link) => (
-                  <li key={link.label}>
-                    {link.children ? (
-                      <>
-                        <button
-                          type="button"
-                          aria-expanded={mobileSub}
-                          onClick={() => setMobileSub((v) => !v)}
-                          className={`flex w-full items-center gap-3 py-3.5 text-left text-sm font-medium ${
-                            isKatalogActive ? "text-red-500" : "text-white"
+      {/* Panel menu mobile (selalu dirender supaya buka/tutup halus) */}
+      <div
+        id="menu-mobile"
+        aria-hidden={!mobileOpen}
+        className={`grid transition-[grid-template-rows,opacity,visibility] duration-300 ease-out motion-reduce:transition-none lg:hidden ${
+          mobileOpen
+            ? "visible grid-rows-[1fr] opacity-100"
+            : "invisible grid-rows-[0fr] opacity-0"
+        }`}
+      >
+        <div className="overflow-hidden">
+          <div className="border-t border-white/10 bg-[#0b0f17]">
+            <div className="mx-auto max-w-7xl px-4 py-4">
+              <SearchForm
+                query={query}
+                setQuery={setQuery}
+                onSubmit={handleSearch}
+                className="mb-3"
+              />
+              <nav aria-label="Navigasi utama (mobile)">
+                <ul className="divide-y divide-white/5">
+                  {NAV_LINKS.map((link) => (
+                    <li key={link.label}>
+                      {link.children ? (
+                        <>
+                          <button
+                            type="button"
+                            aria-expanded={mobileSub}
+                            onClick={() => setMobileSub((v) => !v)}
+                            className={`flex w-full items-center gap-3 py-3.5 text-left text-sm font-medium transition-colors ${
+                              isKatalogActive ? "text-red-500" : "text-white"
+                            } ${focusRing}`}
+                          >
+                            <Icon name={iconFor(link)} className="h-5 w-5" />
+                            <span className="flex-1">{link.label}</span>
+                            <Icon
+                              name="chevron"
+                              className={`h-4 w-4 transition-transform duration-300 ${
+                                mobileSub ? "rotate-180" : ""
+                              }`}
+                            />
+                          </button>
+
+                          <div
+                            className={`grid transition-[grid-template-rows,opacity] duration-300 ease-out ${
+                              mobileSub
+                                ? "grid-rows-[1fr] opacity-100"
+                                : "grid-rows-[0fr] opacity-0"
+                            }`}
+                          >
+                            <ul className="mb-2 ml-2 overflow-hidden border-l-2 border-red-500 pl-4">
+                              {link.children.map((child) => (
+                                <li key={child.to}>
+                                  <Link
+                                    to={child.to}
+                                    tabIndex={mobileSub ? 0 : -1}
+                                    className={`block py-2.5 text-sm transition-all duration-200 hover:translate-x-1 ${
+                                      isLinkActive(child.to, true)
+                                        ? "font-medium text-red-400"
+                                        : "text-slate-300 hover:text-white"
+                                    } ${focusRing}`}
+                                  >
+                                    {child.label}
+                                  </Link>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        </>
+                      ) : (
+                        <Link
+                          to={link.to}
+                          aria-current={isLinkActive(link.to) ? "page" : undefined}
+                          className={`flex items-center gap-3 py-3.5 text-sm font-medium transition-all duration-200 hover:translate-x-1 ${
+                            isLinkActive(link.to) ? "text-red-500" : "text-white"
                           } ${focusRing}`}
                         >
                           <Icon name={iconFor(link)} className="h-5 w-5" />
-                          <span className="flex-1">{link.label}</span>
-                          <Icon
-                            name="chevron"
-                            className={`h-4 w-4 transition-transform ${
-                              mobileSub ? "rotate-180" : ""
-                            }`}
-                          />
-                        </button>
-                        {mobileSub && (
-                          <ul className="mb-2 ml-2 border-l-2 border-red-500 pl-4">
-                            {link.children.map((child) => (
-                              <li key={child.to}>
-                                <NavLink
-                                  to={child.to}
-                                  end
-                                  className={({ isActive }) =>
-                                    `block py-2.5 text-sm ${
-                                      isActive
-                                        ? "font-medium text-red-400"
-                                        : "text-slate-300 hover:text-white"
-                                    } ${focusRing}`
-                                  }
-                                >
-                                  {child.label}
-                                </NavLink>
-                              </li>
-                            ))}
-                          </ul>
-                        )}
-                      </>
-                    ) : (
-                      <NavLink
-                        to={link.to}
-                        end={link.to === "/"}
-                        className={({ isActive }) =>
-                          `flex items-center gap-3 py-3.5 text-sm font-medium ${
-                            isActive ? "text-red-500" : "text-white"
-                          } ${focusRing}`
-                        }
-                      >
-                        <Icon name={iconFor(link)} className="h-5 w-5" />
-                        {link.label}
-                      </NavLink>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            </nav>
+                          {link.label}
+                        </Link>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </nav>
 
-            <div className="mt-4 grid grid-cols-2 gap-3">
-              <Link
-                to="/masuk"
-                className={`flex items-center justify-center gap-2 rounded-full border border-white/15 py-2.5 text-sm font-semibold text-white hover:bg-white/10 ${focusRing}`}
-              >
-                <Icon name="user" className="h-4 w-4" />
-                Masuk / Daftar
-              </Link>
-              <a
-                href={`tel:${CONTACT.phone.replace(/[^0-9+]/g, "")}`}
-                className={`flex items-center justify-center gap-2 rounded-full bg-red-600 py-2.5 text-sm font-semibold text-white hover:bg-red-500 ${focusRing}`}
-              >
-                <Icon name="phone" className="h-4 w-4" />
-                Hubungi
-              </a>
+              <div className="mt-4 grid grid-cols-2 gap-3">
+                <Link
+                  to="/masuk"
+                  className={`flex items-center justify-center gap-2 rounded-full border border-white/15 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-white/10 ${focusRing}`}
+                >
+                  <Icon name="user" className="h-4 w-4" />
+                  Masuk / Daftar
+                </Link>
+                <a
+                  href={`tel:${CONTACT.phone.replace(/[^0-9+]/g, "")}`}
+                  className={`flex items-center justify-center gap-2 rounded-full bg-red-600 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-red-500 ${focusRing}`}
+                >
+                  <Icon name="phone" className="h-4 w-4" />
+                  Hubungi
+                </a>
+              </div>
             </div>
           </div>
         </div>
-      )}
+      </div>
     </header>
   );
 }
